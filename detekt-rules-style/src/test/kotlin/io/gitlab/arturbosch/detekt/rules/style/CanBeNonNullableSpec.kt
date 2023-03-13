@@ -873,7 +873,6 @@ class CanBeNonNullableSpec(val env: KotlinCoreEnvironment) {
                             operator fun not() = this
                         }
                         
-                        
                         var c = 100
                         fun test(a: A, b: A?) {
                             when {
