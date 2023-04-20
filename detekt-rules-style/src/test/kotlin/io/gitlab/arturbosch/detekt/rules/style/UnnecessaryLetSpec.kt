@@ -428,6 +428,129 @@ class UnnecessaryLetSpec(val env: KotlinCoreEnvironment) {
         )
         assertThat(findings).isEmpty()
     }
+
+    @Test
+    fun `does not report let is used as cast-#5701`() {
+        val findings = subject.compileAndLintWithContext(
+            env,
+            """
+                import java.lang.reflect.Field
+                import java.lang.reflect.Modifier
+
+                fun Field.clearFinal() {
+                    // Java 8-17 compatible version of: Field::class.java.getDeclaredField("modifiers")
+                    // Idea: https://stackoverflow.com/a/69418150/253468
+                    Class::class.java
+                        .getDeclaredMethod("getDeclaredFields0", Boolean::class.javaPrimitiveType)
+                        .apply { isAccessible = true }
+                        .invoke(Field::class.java, false)
+                        .let { @Suppress("UNCHECKED_CAST") (it as Array<Field>) }
+                        .single { it.name == "modifiers" }
+                        // Then clear the final modifier.
+                        .apply { isAccessible = true }
+                        .setInt(this, this.modifiers and Modifier.FINAL.inv())
+                }
+            """.trimIndent()
+        )
+        assertThat(findings).isEmpty()
+    }
+
+    @Test
+    fun `does report let is used for extension function which can put into chain`() {
+        val findings = subject.compileAndLintWithContext(
+            env,
+            """
+                fun <M>List<M>.mutableCast() = this as ArrayList<M>
+                fun getList(): List<Int> = arrayListOf()
+                fun testFun() {
+                    getList().let { 
+                        it.mutableCast()
+                    }.also { 
+                        it.add(1)
+                    }.joinToString()
+                }
+            """.trimIndent()
+        )
+        assertThat(findings).hasSize(1)
+    }
+
+    @Test
+    fun `does report let is used for extension function which can put into long chain`() {
+        val findings = subject.compileAndLintWithContext(
+            env,
+            """
+                fun <M> List<M>.mutableCast() = this as ArrayList<M>
+                fun getList(): List<Int> = arrayListOf()
+                fun testFun() {
+                    getList().map {
+                        it.toString()
+                    }.map {
+                        it.length
+                    }.map {
+                        it.toString()
+                    }.map {
+                        it.length
+                    }.let {
+                        it.mutableCast()
+                    }.also {
+                        it.add(1)
+                    }.joinToString()
+                }
+            """.trimIndent()
+        )
+        assertThat(findings).hasSize(1)
+    }
+
+    @Test
+    fun `does not report let is used for extension function which can put into long chain`() {
+        val findings = subject.compileAndLintWithContext(
+            env,
+            """
+                fun <M> List<M>.mutableCast() = this as ArrayList<M>
+                fun getList(): List<Int> = arrayListOf()
+                fun testFun() {
+                    getList().map {
+                        it.toString()
+                    }.map {
+                        it.length
+                    }.map {
+                        it.toString()
+                    }.map {
+                        it.length
+                    }.let {
+                        if (System.currentTimeMillis() % 2 = 0) {
+                            println("System time is even")
+                            it.mutableCast()
+                        } else {
+                            println("Odd time :(")  
+                            it.mutableCast()
+                        }
+                    }.also {
+                        it.add(1)
+                    }.joinToString()
+                }
+            """.trimIndent()
+        )
+        assertThat(findings).isEmpty()
+    }
+
+    @Test
+    fun `does not report let is used to call a fun at the end-#4388`() {
+        val findings = subject.compileAndLintWithContext(
+            env,
+            """
+                class Context(val resourc: Resou)
+                fun test() {
+                    val fontMap = context.resources
+                    .openRawResource("font")
+                    .bufferedReader()
+                    .use { it.readText() }
+                    .let { parseFontMap(it) }
+                }
+            """.trimIndent()
+        )
+        assertThat(findings).isEmpty()
+    }
 }
 
 private const val MESSAGE_OMIT_LET = "let expression can be omitted"
