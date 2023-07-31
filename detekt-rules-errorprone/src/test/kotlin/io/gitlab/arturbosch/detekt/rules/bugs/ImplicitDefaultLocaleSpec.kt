@@ -33,68 +33,68 @@ class ImplicitDefaultLocaleSpec(private val env: KotlinCoreEnvironment) {
     }
 
     @Test
-    fun `reports String_toUpperCase() call without explicit locale`() {
+    fun `reports String_uppercase() call without explicit locale`() {
         val code = """
             fun x() {
                 val s = "deadbeef"
-                s.toUpperCase()
+                s.uppercase()
             }
         """.trimIndent()
         assertThat(subject.compileAndLintWithContext(env, code)).hasSize(1)
     }
 
     @Test
-    fun `does not report String_toUpperCase() call with explicit locale`() {
+    fun `does not report String_uppercase() call with explicit locale`() {
         val code = """
             import java.util.Locale
             fun x() {
                 val s = "deadbeef"
-                s.toUpperCase(Locale.US)
+                s.uppercase(Locale.US)
             }
         """.trimIndent()
         assertThat(subject.compileAndLintWithContext(env, code)).isEmpty()
     }
 
     @Test
-    fun `reports String_toLowerCase() call without explicit locale`() {
+    fun `reports String_lowercase() call without explicit locale`() {
         val code = """
             fun x() {
                 val s = "deadbeef"
-                s.toLowerCase()
+                s.lowercase()
             }
         """.trimIndent()
         assertThat(subject.compileAndLintWithContext(env, code)).hasSize(1)
     }
 
     @Test
-    fun `does not report String_toLowerCase() call with explicit locale`() {
+    fun `does not report String_lowercase() call with explicit locale`() {
         val code = """
             import java.util.Locale
             fun x() {
                 val s = "deadbeef"
-                s.toLowerCase(Locale.US)
+                s.lowercase(Locale.US)
             }
         """.trimIndent()
         assertThat(subject.compileAndLintWithContext(env, code)).isEmpty()
     }
 
     @Test
-    fun `reports nullable String_toUpperCase call without explicit locale`() {
+    fun `reports nullable String_uppercase call without explicit locale`() {
         val code = """
             fun x() {
                 val s: String? = "deadbeef"
-                s?.toUpperCase()
+                s?.uppercase()
             }
         """.trimIndent()
         assertThat(subject.compileAndLintWithContext(env, code)).hasSize(1)
     }
 
     @Test
-    fun `reports nullable String_toLowerCase call without explicit locale`() {
+    fun `reports nullable String_lowercase call without explicit locale`() {
         val code = """
             fun x() {
                 val s: String? = "deadbeef"
-                s?.toLowerCase()
+                s?.lowercase()
             }
         """.trimIndent()
         assertThat(subject.compileAndLintWithContext(env, code)).hasSize(1)

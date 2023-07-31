@@ -97,7 +97,7 @@ class ImplicitDefaultLocale(config: Config = Config.empty) : Rule(config) {
 }
 
 private fun KtQualifiedExpression.isCalleeCaseConversion(): Boolean {
-    return getCalleeExpressionIfAny()?.text in arrayOf("toLowerCase", "toUpperCase")
+    return getCalleeExpressionIfAny()?.text in arrayOf("lowercase", "uppercase")
 }
 
 private fun KtQualifiedExpression.isCalleeNoArgs(): Boolean {
