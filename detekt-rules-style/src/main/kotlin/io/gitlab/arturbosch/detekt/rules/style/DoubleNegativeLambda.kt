@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtOperationReferenceExpression
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
+import java.util.Locale
 
 /**
  * Detects negation in lambda blocks where the function name is also in the negative (like `takeUnless`).
@@ -94,7 +95,11 @@ class DoubleNegativeLambda(config: Config = Config.empty) : Rule(config) {
     private fun KtExpression.isForbiddenNegation(): Boolean {
         return when (this) {
             is KtOperationReferenceExpression -> operationSignTokenType in negationTokens
-            is KtCallExpression -> text == "not()" || text.split(splitCamelCaseRegex).map { it.lowercase() }
+            is KtCallExpression -> text == "not()" || text.split(splitCamelCaseRegex).map {
+                it.lowercase(
+                    Locale.ENGLISH
+                )
+            }
                 .any { it in negativeFunctionNameParts }
 
             else -> false
