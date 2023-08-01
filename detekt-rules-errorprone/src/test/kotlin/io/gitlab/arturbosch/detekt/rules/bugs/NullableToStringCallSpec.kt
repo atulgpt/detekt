@@ -23,6 +23,18 @@ class NullableToStringCallSpec(private val env: KotlinCoreEnvironment) {
     }
 
     @Test
+    fun `reports when a nullable toString is explicitly called inside template string`() {
+        val code = """
+            fun test(a: Any?) {
+                println("${'$'}{a.toString()}")
+            }
+        """.trimIndent()
+        val actual = subject.compileAndLintWithContext(env, code)
+        assertThat(actual).hasSize(1)
+        assertThat(actual.first().message).isEqualTo("This call 'a.toString()' may return the string \"null\".")
+    }
+
+    @Test
     fun `reports when a nullable toString is implicitly called in a string template`() {
         val code = """
             fun test(a: Any?) {
@@ -176,5 +188,29 @@ class NullableToStringCallSpec(private val env: KotlinCoreEnvironment) {
         """.trimIndent()
         val actual = subject.compileAndLintWithContext(env, code)
         assertThat(actual).isEmpty()
+    }
+
+    @Test
+    fun `does report implicit toString call inside lambda`() {
+        val code = """
+            fun test(): String = 1.let {
+                val x: String? = null
+                println("${'$'}x")
+            }
+        """.trimIndent()
+        val actual = subject.compileAndLintWithContext(env, code)
+        assertThat(actual).hasSize(1)
+    }
+
+    @Test
+    fun `does report explicit toString call inside lambda`() {
+        val code = """
+            fun test(): String = 1.let {
+                val x: Any? = null
+                println("${'$'}{x.toString()}")
+            }
+        """.trimIndent()
+        val actual = subject.compileAndLintWithContext(env, code)
+        assertThat(actual).hasSize(1)
     }
 }

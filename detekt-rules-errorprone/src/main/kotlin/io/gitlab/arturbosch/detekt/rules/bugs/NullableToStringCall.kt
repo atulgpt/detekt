@@ -82,13 +82,13 @@ class NullableToStringCall(config: Config = Config.empty) : Rule(config) {
     @Suppress("ReturnCount")
     private fun KtExpression.targetExpression(): KtExpression? {
         val qualifiedExpression = getStrictParentOfType<KtQualifiedExpression>()
-        val targetExpression = if (qualifiedExpression != null) {
+        return if (this.parent is KtStringTemplateEntry) {
+            this
+        } else if (qualifiedExpression != null) {
             qualifiedExpression.takeIf { it.selectorExpression == this } ?: return null
         } else {
-            this
+            null
         }
-        if (targetExpression.getStrictParentOfType<KtQualifiedExpression>() != null) return null
-        return targetExpression
     }
 
     private fun report(element: PsiElement) {
