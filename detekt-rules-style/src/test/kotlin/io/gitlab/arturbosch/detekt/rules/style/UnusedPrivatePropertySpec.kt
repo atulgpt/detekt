@@ -1,5 +1,6 @@
 package io.gitlab.arturbosch.detekt.rules.style
 
+import io.gitlab.arturbosch.detekt.api.SourceLocation
 import io.gitlab.arturbosch.detekt.rules.KotlinCoreEnvironmentTest
 import io.gitlab.arturbosch.detekt.test.TestConfig
 import io.gitlab.arturbosch.detekt.test.assertThat
@@ -217,6 +218,17 @@ class UnusedPrivatePropertySpec(val env: KotlinCoreEnvironment) {
         }
 
         @Test
+        fun `does not report when local property is used inside lambda`() {
+            val code = """
+                fun t() {
+                    val usedVal = 1
+                    Runnable { println(usedVal) }.run()
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).isEmpty()
+        }
+
+        @Test
         fun `reports unused local properties`() {
             val code = """
                 class Test {
@@ -229,6 +241,36 @@ class UnusedPrivatePropertySpec(val env: KotlinCoreEnvironment) {
                 }
             """.trimIndent()
             assertThat(subject.lint(code)).hasSize(1)
+        }
+
+        @Test
+        fun `reports local property when unused with class property with same name`() {
+            val code = """
+                class Test {
+                    private val used = "This is used"
+
+                    fun use() {
+                        val used = 1
+                        println(used)
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).hasSize(1).hasStartSourceLocation(2, 17)
+        }
+
+        @Test
+        fun `reports class property when unused with local property with same name`() {
+            val code = """
+                class Test {
+                    private val used = "This is used"
+
+                    fun use() {
+                        val used = 1
+                        println(this.used)
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).hasSize(1).hasStartSourceLocation(5, 13)
         }
     }
 
@@ -456,6 +498,71 @@ class UnusedPrivatePropertySpec(val env: KotlinCoreEnvironment) {
                 }
             """.trimIndent()
             assertThat(subject.lint(code)).isEmpty()
+        }
+
+        @Test
+        fun `does not reports local fun property if used in local class`() {
+            val code = """
+                fun test() {
+                    val usedVal1 = 1
+                    val usedVal2 = 1
+                    class LocalClass {
+                        init {
+                            println(usedVal1)
+                        }
+                        fun foo() = println(usedVal2)
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).isEmpty()
+        }
+
+        @Test
+        fun `does report local fun property is used instead of property in local class`() {
+            val code = """
+                fun test() {
+                    val commonVal = 1
+                    class LocalClass {
+                        private val commonVal: Int
+                        fun foo() = println(commonVal)
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).hasSize(1).hasStartSourceLocation(4, 21)
+        }
+
+        @Test
+        fun `does report local fun property is not used instead of property in local class is used`() {
+            val code = """
+                fun test() {
+                    val commonVal = 1
+                    class LocalClass {
+                        private val commonVal: Int
+                        fun foo() = println(this.commonVal)
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).hasSize(1).hasStartSourceLocation(2, 9)
+        }
+
+        @Test
+        fun `does proper class when variable is common`() {
+            val code = """
+                class Class {
+                    private val commonVal: Int = 0
+                    inner class LocalClass1 {
+                        private val commonVal: Int = 0
+                        inner class LocalClass2 {
+                            private val commonVal: Int = 0
+                            fun test() = println(this@LocalClass1.commonVal)
+                        }
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).hasSize(2).hasStartSourceLocations(
+                SourceLocation(2, 18),
+                SourceLocation(6, 25)
+            )
         }
     }
 
@@ -714,6 +821,18 @@ class UnusedPrivatePropertySpec(val env: KotlinCoreEnvironment) {
         fun `reports unused private property`() {
             val code = """
                 class Test(private val unused: Any)
+            """.trimIndent()
+            assertThat(subject.lint(code)).hasSize(1)
+        }
+
+        // TC from https://github.com/detekt/detekt/pull/6701
+        @Test
+        fun `reports unused private property if used in one class but not another - #6702`() {
+            val code = """
+                class A(private val foo: Any) {
+                    fun myFoo() = foo
+                }
+                class B(private val foo: Any)
             """.trimIndent()
             assertThat(subject.lint(code)).hasSize(1)
         }
