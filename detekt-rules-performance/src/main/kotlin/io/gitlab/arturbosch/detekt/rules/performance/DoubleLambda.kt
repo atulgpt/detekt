@@ -2,12 +2,9 @@ package io.gitlab.arturbosch.detekt.rules.performance
 
 import io.gitlab.arturbosch.detekt.api.CodeSmell
 import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.Debt
 import io.gitlab.arturbosch.detekt.api.Entity
-import io.gitlab.arturbosch.detekt.api.Issue
+import io.gitlab.arturbosch.detekt.api.RequiresTypeResolution
 import io.gitlab.arturbosch.detekt.api.Rule
-import io.gitlab.arturbosch.detekt.api.Severity
-import io.gitlab.arturbosch.detekt.api.internal.RequiresTypeResolution
 import org.jetbrains.kotlin.backend.common.descriptors.isSuspend
 import org.jetbrains.kotlin.builtins.functions.FunctionInvokeDescriptor
 import org.jetbrains.kotlin.builtins.getReceiverTypeFromFunctionType
@@ -73,15 +70,11 @@ import org.jetbrains.kotlin.types.KotlinType
  */
 // Implementation taken from https://github.com/JetBrains/intellij-community/blob/master/plugins/kotlin/idea/src/org/jetbrains/kotlin/idea/intentions/ConvertLambdaToReferenceIntention.kt
 @RequiresTypeResolution
-class DoubleLambda(config: Config = Config.empty) : Rule(config) {
-    override val issue: Issue = Issue(
-        "DoubleLambda",
-        Severity.Performance,
-        "Detects unnecessary lambda creation which can be avoided by directly using " +
-            "lambda reference",
-        Debt.FIVE_MINS
-    )
-
+class DoubleLambda(config: Config = Config.empty) : Rule(
+    config,
+    "Detects unnecessary lambda creation which can be avoided by directly using " +
+        "lambda reference"
+) {
     @Suppress("ReturnCount")
     override fun visitLambdaExpression(lambdaExpression: KtLambdaExpression) {
         super.visitLambdaExpression(lambdaExpression)

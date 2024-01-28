@@ -2,12 +2,9 @@ package io.gitlab.arturbosch.detekt.rules.performance
 
 import io.gitlab.arturbosch.detekt.api.CodeSmell
 import io.gitlab.arturbosch.detekt.api.Config
-import io.gitlab.arturbosch.detekt.api.Debt
 import io.gitlab.arturbosch.detekt.api.Entity
-import io.gitlab.arturbosch.detekt.api.Issue
+import io.gitlab.arturbosch.detekt.api.RequiresTypeResolution
 import io.gitlab.arturbosch.detekt.api.Rule
-import io.gitlab.arturbosch.detekt.api.Severity
-import io.gitlab.arturbosch.detekt.api.internal.RequiresTypeResolution
 import org.jetbrains.kotlin.builtins.getReceiverTypeFromFunctionType
 import org.jetbrains.kotlin.builtins.isExtensionFunctionType
 import org.jetbrains.kotlin.builtins.isFunctionType
@@ -89,15 +86,11 @@ import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
  */
 // Implementation taken from https://github.com/JetBrains/intellij-community/blob/master/plugins/kotlin/idea/src/org/jetbrains/kotlin/idea/intentions/ConvertLambdaToReferenceIntention.kt
 @RequiresTypeResolution
-class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
-    override val issue: Issue = Issue(
-        "UnnecessaryLambda",
-        Severity.Performance,
-        "Detects unnecessary lambda creation which can be avoided by directly using functional reference " +
-            "or lambda reference",
-        Debt.FIVE_MINS
-    )
-
+class UnnecessaryLambda(config: Config = Config.empty) : Rule(
+    config,
+    "Detects unnecessary lambda creation which can be avoided by directly using functional reference " +
+        "or lambda reference",
+) {
     override fun visitLambdaExpression(lambdaExpression: KtLambdaExpression) {
         super.visitLambdaExpression(lambdaExpression)
         val singleStatement = lambdaExpression.singleStatementOrNull()?.deparenthesize() ?: return
@@ -108,6 +101,7 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
                     lambdaExpression = lambdaExpression
                 ) to singleStatement
             }
+
             is KtNameReferenceExpression -> false to null // Global property reference is not possible (?!)
             is KtDotQualifiedExpression -> {
                 val selector = singleStatement.selectorExpression ?: return
@@ -117,6 +111,7 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
                     lambdaExpression = lambdaExpression
                 ) to singleStatement
             }
+
             else -> false to null
         }
 
@@ -155,7 +150,9 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
     ): Boolean {
         val languageVersionSettings = compilerResources?.languageVersionSettings ?: return false
         val calleeReferenceExpression = when (callableExpression) {
-            is KtCallExpression -> callableExpression.calleeExpression as? KtNameReferenceExpression ?: return false
+            is KtCallExpression -> callableExpression.calleeExpression as? KtNameReferenceExpression
+                ?: return false
+
             is KtNameReferenceExpression -> callableExpression
             else -> return false
         }
@@ -199,10 +196,12 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
             if (dispatchReceiverParameter != null && extensionReceiverParameter != null) return false
             dispatchReceiverParameter != null || extensionReceiverParameter != null
         }
-        val noBoundReferences = !languageVersionSettings.supportsFeature(LanguageFeature.BoundCallableReferences)
+        val noBoundReferences =
+            !languageVersionSettings.supportsFeature(LanguageFeature.BoundCallableReferences)
         if (noBoundReferences && descriptorHasReceiver && explicitReceiver == null) return false
 
-        val callableArgumentsCount = (callableExpression as? KtCallExpression)?.valueArguments?.size ?: 0
+        val callableArgumentsCount =
+            (callableExpression as? KtCallExpression)?.valueArguments?.size ?: 0
         if (calleeDescriptor.valueParameters.size != callableArgumentsCount &&
             (
                 lambdaExpression.parentValueArgument() == null || calleeDescriptor.valueParameters.none {
@@ -229,7 +228,8 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
         }
 
         val lambdaValueParameterDescriptors =
-            bindingContext[BindingContext.FUNCTION, lambdaExpression.functionLiteral]?.valueParameters ?: return false
+            bindingContext[BindingContext.FUNCTION, lambdaExpression.functionLiteral]?.valueParameters
+                ?: return false
         if (explicitReceiver != null && explicitReceiver !is KtSimpleNameExpression &&
             explicitReceiver.anyDescendantOfType<KtSimpleNameExpression> {
                 it.getResolvedCall(bindingContext)?.resultingDescriptor in lambdaValueParameterDescriptors
@@ -246,6 +246,7 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
             true -> {
                 explicitReceiver != null
             }
+
             false -> {
                 explicitReceiverDescriptor != null &&
                     explicitReceiverDescriptor == lambdaValueParameterDescriptors.firstOrNull()
@@ -283,7 +284,8 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
                 if (resolvedArgument is DefaultValueArgument) return@forEach
                 val argument = resolvedArgument.arguments.singleOrNull() ?: return false
                 if (resolvedArgument is VarargValueArgument && argument.getSpreadElement() == null) return false
-                val argumentExpression = argument.getArgumentExpression() as? KtNameReferenceExpression ?: return false
+                val argumentExpression =
+                    argument.getArgumentExpression() as? KtNameReferenceExpression ?: return false
                 val argumentTarget =
                     bindingContext[BindingContext.REFERENCE_TARGET, argumentExpression] as? ValueParameterDescriptor
                         ?: return false
@@ -326,7 +328,8 @@ class UnnecessaryLambda(config: Config = Config.empty) : Rule(config) {
         } as? KtValueArgument
     }
 
-    private fun KtLambdaExpression.singleStatementOrNull() = bodyExpression?.statements?.singleOrNull()
+    private fun KtLambdaExpression.singleStatementOrNull() =
+        bodyExpression?.statements?.singleOrNull()
 
     private fun KtLambdaExpression.isArgument() =
         this === getStrictParentOfType<KtValueArgument>()?.getArgumentExpression()?.deparenthesize()
