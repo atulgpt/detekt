@@ -94,6 +94,7 @@ class StyleGuideProvider : DefaultRuleSetProvider {
             ::UseCheckOrError,
             ::UseIfInsteadOfWhen,
             ::RedundantConstructorKeyword,
+            ::RedundantExplicitOperatorCall,
             ::RedundantExplicitType,
             ::UseArrayLiteralsInAnnotations,
             ::UseEmptyCounterpart,
