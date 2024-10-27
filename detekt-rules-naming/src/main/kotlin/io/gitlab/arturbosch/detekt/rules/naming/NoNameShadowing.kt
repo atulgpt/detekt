@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtParameter
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
+import org.jetbrains.kotlin.psi.psiUtil.parents
 
 /**
  * Disallows shadowing variable declarations.
@@ -69,6 +70,11 @@ class NoNameShadowing(config: Config) : Rule(
 
     private fun checkNameShadowing(declaration: KtNamedDeclaration) {
         val nameIdentifier = declaration.nameIdentifier ?: return
+        println("${declaration.text} ->\n")
+        declaration.parents.forEach {
+            println("name: ${it::class.simpleName}\n${it.text}")
+        }
+        println("end for ${declaration.text}\n\n\n")
         if (bindingContext.diagnostics.forElement(declaration).any { it.factory == Errors.NAME_SHADOWING }) {
             report(CodeSmell(Entity.from(nameIdentifier), "Name shadowed: ${nameIdentifier.text}"))
         }

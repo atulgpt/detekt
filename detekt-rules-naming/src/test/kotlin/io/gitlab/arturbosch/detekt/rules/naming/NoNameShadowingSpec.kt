@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 
 @KotlinCoreEnvironmentTest
 class NoNameShadowingSpec(val env: KotlinCoreEnvironment) {
-    val subject = NoNameShadowing(Config.empty)
+    private val subject = NoNameShadowing(Config.empty)
 
     @Test
     fun `report shadowing variable`() {
@@ -21,6 +21,62 @@ class NoNameShadowingSpec(val env: KotlinCoreEnvironment) {
         val findings = subject.compileAndLintWithContext(env, code)
         assertThat(findings).singleElement().hasMessage("Name shadowed: i")
         assertThat(findings).hasStartSourceLocation(2, 9)
+    }
+
+    @Test
+    fun `report shadowing instance variable with local variable`() {
+        val code = """
+            val i = 1
+            fun test() {
+                val i = 1
+            }
+        """.trimIndent()
+        val findings = subject.compileAndLintWithContext(env, code)
+        assertThat(findings).singleElement().hasMessage("Name shadowed: i")
+        assertThat(findings).hasStartSourceLocation(3, 9)
+    }
+
+    @Test
+    fun `report shadowing instance variable with param variable`() {
+        val code = """
+            val i = 1
+            fun test(i: Int) {
+                println(i)
+            }
+        """.trimIndent()
+        val findings = subject.compileAndLintWithContext(env, code)
+        assertThat(findings).singleElement().hasMessage("Name shadowed: i")
+        assertThat(findings).hasStartSourceLocation(2, 10)
+    }
+
+    @Test
+    fun `does not report shadowing instance variable in class which can not be accessed`() {
+        val code = """
+            class A {
+                val i = 1
+            }
+            fun test() {
+                val i = 1
+            }
+        """.trimIndent()
+        val findings = subject.compileAndLintWithContext(env, code)
+        assertThat(findings).isEmpty()
+    }
+
+    @Test
+    fun `report shadowing companion instance variable in a class`() {
+        val code = """
+            class A {
+                fun foo() {
+                    val i = 1
+                }
+                companion object {
+                    const val i = 1
+                }
+            }
+        """.trimIndent()
+        val findings = subject.compileAndLintWithContext(env, code)
+        assertThat(findings).singleElement().hasMessage("Name shadowed: i")
     }
 
     @Test
@@ -75,9 +131,21 @@ class NoNameShadowingSpec(val env: KotlinCoreEnvironment) {
     }
 
     @Test
-    fun `does not report not shadowing variable`() {
+    fun `does not report not shadowing param variable`() {
         val code = """
             fun test(i: Int) {
+                val j = i
+            }
+        """.trimIndent()
+        val findings = subject.compileAndLintWithContext(env, code)
+        assertThat(findings).isEmpty()
+    }
+
+    @Test
+    fun `does not report not shadowing instance variable`() {
+        val code = """
+            val i = 1
+            fun test() {
                 val j = i
             }
         """.trimIndent()
@@ -101,6 +169,35 @@ class NoNameShadowingSpec(val env: KotlinCoreEnvironment) {
                 }
                 listOf("").let { list ->
                     list.map { it + "x" }
+                }
+            }
+        """.trimIndent()
+        val findings = subject.compileAndLintWithContext(env, code)
+        assertThat(findings).isEmpty()
+    }
+
+    @Test
+    fun `#7741 does report shadowing when inside a lambda`() {
+        val code = """
+            fun asdf(rotation: Float, onClick: (Float) -> Unit) {
+                foo {
+                    asdf(rotation) { rotation -> onClick(rotation) }
+                }
+            }
+
+            fun foo(block: () -> Unit) {
+            }
+        """.trimIndent()
+        val findings = subject.compileAndLintWithContext(env, code)
+        assertThat(findings).hasSize(1)
+    }
+
+    @Test
+    fun `does not report shadowing when type and variable name match`() {
+        val code = """
+            fun foo(onClick: (Float) -> Unit) {
+                listOf(1F).map { Float ->
+                    onClick(Float)
                 }
             }
         """.trimIndent()
