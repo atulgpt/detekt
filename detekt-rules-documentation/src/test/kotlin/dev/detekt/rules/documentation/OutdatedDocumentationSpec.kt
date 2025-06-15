@@ -294,6 +294,29 @@ class OutdatedDocumentationSpec {
             """.trimIndent()
             assertThat(subject.lint(code)).isEmpty()
         }
+
+        @Test
+        fun `#7917 -should not report when sub class property is documented in parent sealed class`() {
+            val code = """
+                /**
+                 * Base class.
+                 * @property prop blah blah
+                 */
+                sealed class Base(
+                    val prop: String,
+                ) {
+                    /**
+                     * Sub class.
+                     * @property anotherProp another blah blah
+                     */
+                    class Sub(
+                        val anotherProp: String,
+                        prop: String,
+                    ) : Base(prop)
+                }
+            """.trimIndent()
+            assertThat(subject.lint(code)).isEmpty()
+        }
     }
 
     @Nested
