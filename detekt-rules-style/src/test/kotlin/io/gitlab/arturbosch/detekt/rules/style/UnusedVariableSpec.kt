@@ -4,8 +4,15 @@ import io.github.detekt.test.utils.KotlinEnvironmentContainer
 import io.gitlab.arturbosch.detekt.api.Config
 import io.gitlab.arturbosch.detekt.api.SourceLocation
 import io.gitlab.arturbosch.detekt.rules.KotlinCoreEnvironmentTest
+import io.gitlab.arturbosch.detekt.test.FakeLanguageVersionSettings
 import io.gitlab.arturbosch.detekt.test.assertThat
 import io.gitlab.arturbosch.detekt.test.lintWithContext
+import org.jetbrains.kotlin.config.AnalysisFlags
+import org.jetbrains.kotlin.config.ApiVersion
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.LanguageVersion
+import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
+import org.jetbrains.kotlin.config.languageVersionSettings
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
@@ -352,6 +359,200 @@ class UnusedVariableSpec(val env: KotlinEnvironmentContainer) {
             assertThat(subject.lintWithContext(env, code))
                 .hasSize(1)
                 .hasStartSourceLocations(SourceLocation(2, 16))
+        }
+    }
+
+    @Nested
+    inner class `inside when` {
+        @Test
+        fun `with expression entry`() {
+            val code = """
+                fun main() {
+                    val a = '1'.digitToInt() + 1
+                    when {
+                        a == 2 -> Unit
+                        else -> { /* no-op */ }
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lintWithContext(env, code))
+                .isEmpty()
+        }
+
+        @Test
+        fun `with in entry`() {
+            val code = """
+                fun main() {
+                    val a = '1'.digitToInt() + 1
+                    when(5) {
+                        in a..10 -> Unit
+                        else -> { /* no-op */ }
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lintWithContext(env, code))
+                .isEmpty()
+        }
+
+        @Test
+        fun `with pattern entry`() {
+            val code = """
+                fun main() {
+                    val a = '1'.digitToInt() + 1
+                    when(a) {
+                        is String -> println("string")
+                        else -> { /* no-op */ }
+                    }
+                }
+            """.trimIndent()
+            assertThat(subject.lintWithContext(env, code))
+                .isEmpty()
+        }
+
+        @Nested
+        inner class `with guards` {
+            private val languageVersionSettingsWithGuards = LanguageVersionSettingsImpl(
+                languageVersion = LanguageVersion.LATEST_STABLE,
+                apiVersion = ApiVersion.LATEST_STABLE,
+                analysisFlags = emptyMap(),
+                specificFeatures = mapOf(
+                    LanguageFeature.WhenGuards to LanguageFeature.State.ENABLED
+                ),
+            )
+
+            @Test
+            fun `#7818 - with expression`() {
+                val code = """
+                    fun main() {
+                        val a = '1'.digitToInt() + 1
+                        val b = true
+                        when (a) {
+                            1 if b -> Unit
+                            else -> { /* no-op */ }
+                        }
+                    }
+                """.trimIndent()
+                assertThat(
+                    subject.lintWithContext(
+                        env,
+                        code,
+                        languageVersionSettings = languageVersionSettingsWithGuards,
+                        compile = false,
+                    )
+                ).isEmpty()
+            }
+
+            @Test
+            fun `with expression with unused variable`() {
+                val code = """
+                    fun main() {
+                        val a = '1'.digitToInt() + 1
+                        val b = true
+                        when (a) {
+                            1 if true -> Unit
+                            else -> { /* no-op */ }
+                        }
+                    }
+                """.trimIndent()
+                assertThat(
+                    subject.lintWithContext(
+                        env,
+                        code,
+                        languageVersionSettings = languageVersionSettingsWithGuards,
+                        compile = false,
+                    )
+                ).hasSize(1)
+            }
+
+            @Test
+            fun `with expression with complex condition`() {
+                val code = """
+                    fun main() {
+                        val a = '1'.digitToInt() + 1
+                        val b = true
+                        val c = false
+                        when (a) {
+                            1 if (b || c) -> Unit
+                            else -> { /* no-op */ }
+                        }
+                    }
+                """.trimIndent()
+                assertThat(
+                    subject.lintWithContext(
+                        env,
+                        code,
+                        languageVersionSettings = languageVersionSettingsWithGuards,
+                        compile = false,
+                    )
+                ).isEmpty()
+            }
+
+            @Test
+            fun `with else`() {
+                val code = """
+                    fun main() {
+                        val a = '1'.digitToInt() + 1
+                        val b = true
+                        when (a) {
+                            1 -> Unit
+                            else if b -> { /* no-op */ }
+                            else -> { /* no-op */ }
+                        }
+                    }
+                """.trimIndent()
+                assertThat(
+                    subject.lintWithContext(
+                        env,
+                        code,
+                        languageVersionSettings = languageVersionSettingsWithGuards,
+                        compile = false,
+                    )
+                ).isEmpty()
+            }
+
+            @Test
+            fun `with in entry`() {
+                val code = """
+                    fun main() {
+                        val a = '1'.digitToInt() + 1
+                        val b = false
+                        when(5) {
+                            in a..10 if b -> Unit
+                            else -> { /* no-op */ }
+                        }
+                    }
+                """.trimIndent()
+                assertThat(
+                    subject.lintWithContext(
+                        env,
+                        code,
+                        languageVersionSettings = languageVersionSettingsWithGuards,
+                        compile = false,
+                    )
+                ).isEmpty()
+            }
+
+            @Test
+            fun `with pattern entry`() {
+                val code = """
+                    fun main() {
+                        val a = '1'.digitToInt() + 1
+                        val b = false
+                        when(a) {
+                            is Int if b -> println("string")
+                            else -> { /* no-op */ }
+                        }
+                    }
+                """.trimIndent()
+                assertThat(
+                    subject.lintWithContext(
+                        env,
+                        code,
+                        languageVersionSettings = languageVersionSettingsWithGuards,
+                        compile = false,
+                    )
+                ).isEmpty()
+            }
         }
     }
 }

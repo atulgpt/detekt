@@ -12,6 +12,7 @@ import io.gitlab.arturbosch.detekt.api.RequiresFullAnalysis
 import io.gitlab.arturbosch.detekt.api.Rule
 import io.gitlab.arturbosch.detekt.api.config
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
+import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
 import org.jetbrains.kotlin.load.kotlin.toSourceElement
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -24,6 +25,11 @@ import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.KtVariableDeclaration
+import org.jetbrains.kotlin.psi.KtWhenConditionInRange
+import org.jetbrains.kotlin.psi.KtWhenConditionIsPattern
+import org.jetbrains.kotlin.psi.KtWhenConditionWithExpression
+import org.jetbrains.kotlin.psi.KtWhenEntry
+import org.jetbrains.kotlin.psi.KtWhenEntryGuard
 import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
@@ -130,6 +136,16 @@ private class UnusedVariableVisitor(
         }
 
         references
+            .filterIsInstance<LocalVariableDescriptor>()
+            .forEach(::registerVariableUse)
+    }
+
+    override fun visitWhenEntry(ktWhenEntry: KtWhenEntry) {
+        super.visitWhenEntry(ktWhenEntry)
+        ktWhenEntry
+            .children
+            .filterIsInstance<KtWhenEntryGuard>()
+            .map { it.getExpression()?.getReferenceTargets(bindingContext) }
             .filterIsInstance<LocalVariableDescriptor>()
             .forEach(::registerVariableUse)
     }
