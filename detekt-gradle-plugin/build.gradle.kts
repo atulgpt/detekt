@@ -14,11 +14,11 @@ plugins {
     id("idea")
     id("com.gradle.plugin-publish") version "2.0.0"
     // We use this published version of the detekt plugin to self analyse this project.
-    id("dev.detekt") version "2.0.0-alpha.0"
+    id("dev.detekt") version "2.0.0-alpha.1"
     id("org.jetbrains.kotlinx.binary-compatibility-validator") version "0.18.1"
     id("org.jetbrains.dokka") version "2.1.0"
     id("signing")
-    id("com.github.gmazzo.buildconfig") version "5.7.0"
+    id("com.github.gmazzo.buildconfig") version "5.7.1"
     id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
 }
 
@@ -140,7 +140,6 @@ val testKitGradleMinVersionRuntimeOnly by configurations.registering
 
 dependencies {
     compileOnly(libs.android.gradleApi)
-    compileOnly(libs.kotlin.gradle.plugin)
     compileOnly(libs.kotlin.gradlePluginApi)
     compileOnly(libs.jetbrains.annotations)
 
@@ -157,7 +156,7 @@ dependencies {
     }
 
     // We use this published version of the detekt-rules-ktlint-wrapper to self analyse this project.
-    detektPlugins("dev.detekt:detekt-rules-ktlint-wrapper:2.0.0-alpha.0")
+    detektPlugins("dev.detekt:detekt-rules-ktlint-wrapper:2.0.0-alpha.1")
 }
 
 gradlePlugin {
@@ -166,20 +165,20 @@ gradlePlugin {
     plugins {
         create("detektBasePlugin") {
             id = "dev.detekt.gradle.base"
-            displayName = "Static code analysis for Kotlin v2 - Base Plugin"
-            description = "Static code analysis for Kotlin v2 - Base Plugin"
+            displayName = "Static code analysis for Kotlin - Base Plugin"
+            description = "Static code analysis for Kotlin - Base Plugin"
             implementationClass = "dev.detekt.gradle.plugin.DetektBasePlugin"
         }
         create("detektPlugin") {
             id = "dev.detekt"
-            displayName = "Static code analysis for Kotlin v2"
-            description = "Static code analysis for Kotlin v2"
+            displayName = "Static code analysis for Kotlin"
+            description = "Static code analysis for Kotlin"
             implementationClass = "dev.detekt.gradle.plugin.DetektPlugin"
         }
         create("detektCompilerPlugin") {
             id = "dev.detekt.gradle.compiler-plugin"
-            displayName = "Static code analysis for Kotlin v2 - Compiler Plugin"
-            description = "Static code analysis for Kotlin v2 - Compiler Plugin"
+            displayName = "Static code analysis for Kotlin - Compiler Plugin"
+            description = "Static code analysis for Kotlin - Compiler Plugin"
             implementationClass = "dev.detekt.gradle.plugin.DetektKotlinCompilerPlugin"
         }
         configureEach {
@@ -224,11 +223,9 @@ tasks {
     }
 
     withType<Detekt>().configureEach {
-        jvmTarget = "1.8" // Remove when detekt updated to 2.0.0-alpha.1 or higher (see #8755)
         exclude("dev/detekt/detekt_gradle_plugin/BuildConfig.kt")
     }
     withType<DetektCreateBaselineTask>().configureEach {
-        jvmTarget = "1.8" // Remove when detekt updated to 2.0.0-alpha.1 or higher (see #8755)
         exclude("dev/detekt/detekt_gradle_plugin/BuildConfig.kt")
     }
 

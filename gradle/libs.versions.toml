@@ -1,8 +1,8 @@
 [versions]
 coroutines = "1.10.2"
 jacoco = "0.8.14"
-junit = "6.0.0"
-kotlin = "2.2.20"
+junit = "6.0.1"
+kotlin = "2.2.21"
 ktlint = "1.7.1"
 slf4j = "2.0.17"
 
@@ -28,13 +28,16 @@ android-gradleApi = { module = "com.android.tools.build:gradle-api", version = "
 # This should only be updated when updating the minimum version supported by detekt-test-junit.
 junit-jupiterApi = { module = "org.junit.jupiter:junit-jupiter-api", version = "5.0.0" }
 
+# This represents the oldest Kotlin version that is supported by detekt's Gradle plugin.
+# This should only be updated when updating the minimum version supported by detekt's Gradle plugin.
+kotlin-gradlePluginApi = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin-api", version = "2.1.0" }
+
 assertj-core = { module = "org.assertj:assertj-core", version = "3.27.6" }
 classgraph = { module = "io.github.classgraph:classgraph", version = "4.8.184" }
 jcommander = { module = "org.jcommander:jcommander", version = "1.85" }
 jetbrains-annotations = { module = "org.jetbrains:annotations", version = "26.0.2-1" }
-kctfork-core = { module = "dev.zacsweers.kctfork:core", version = "0.10.1" }
+kctfork-core = { module = "dev.zacsweers.kctfork:core", version = "0.11.0" }
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler", version.ref = "kotlin" }
-kotlin-gradlePluginApi = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin-api", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-scriptingJvm = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm", version.ref = "kotlin" }
 kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -60,6 +63,10 @@ kotlin-symbolLightClasses = { module = "org.jetbrains.kotlin:symbol-light-classe
 kotlin-analysisApiImplBase = { module = "org.jetbrains.kotlin:analysis-api-impl-base-for-ide", version.ref = "kotlin" }
 # Can likely be removed in future - https://youtrack.jetbrains.com/issue/KT-73751/Analysis-API-Caffeine-dependency
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version = "2.9.3" }
+
+# Add dummy lib references so Renovate auto updates the version. Only the version number is referenced in build scripts so Renovate will ignore these otherwise.
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+jacoco = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacoco" }
 
 [plugins]
 # Do not declare plugins here - see https://github.com/detekt/detekt/pull/7088.
